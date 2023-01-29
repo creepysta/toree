@@ -163,9 +163,16 @@ dev: SUSPEND=n
 dev: DEBUG_PORT=5005
 dev: .toree-dev-image dist
 	@$(DOCKER) \
+        -v $(shell pwd)/dist/toree:/usr/local/share/jupyter/kernels/toree \
+        -v $(shell pwd)/etc/kernel.json:/usr/local/share/jupyter/kernels/toree/kernel.json \
+		-it \
 		-e SPARK_OPTS="--master=local[4] --driver-java-options=-agentlib:jdwp=transport=dt_socket,server=y,suspend=$(SUSPEND),address=5005" \
 		-p $(DEBUG_PORT):5005 -p 8888:8888 $(TOREE_DEV_IMAGE) \
-		bash -c "jupyter lab --debug --ip=* --no-browser"
+        bash -c "jupyter lab --ip=* --no-browser"
+
+# bash
+# jupyter lab --debug --ip=* --no-browser
+# jupyter lab --ip=* --no-browser
 
 define JUPYTER_COMMAND
 pip install toree-$(BASE_VERSION).tar.gz

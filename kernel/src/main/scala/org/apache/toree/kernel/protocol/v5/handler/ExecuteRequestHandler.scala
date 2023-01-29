@@ -30,10 +30,11 @@ import Utilities._
 import org.apache.toree.utils._
 import play.api.libs.json.JsonValidationError
 import play.api.libs.json.JsPath
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.util.{Failure, Success}
-import org.apache.toree.plugins.PreRunCell
+import org.apache.toree.plugins.{PostRunCell, PreRunCell}
 
 /**
  * Receives an ExecuteRequest KernelMessage and forwards the ExecuteRequest
@@ -74,7 +75,7 @@ class ExecuteRequestHandler(
         actorLoader.load(SystemActorType.ExecuteRequestRelay),
         (executeRequest, km, outputStream)
       ).mapTo[(ExecuteReply, ExecuteResult)]
-      
+
       if (!executeRequest.silent && kernel.pluginManager != null){
         import org.apache.toree.plugins.Implicits._
         kernel.pluginManager.fireEvent(PreRunCell, "outputStream" -> outputStream)
@@ -82,6 +83,7 @@ class ExecuteRequestHandler(
 
       // Flush the output stream after code execution completes to ensure
       // stream messages are sent prior to idle status messages.
+      //System.exit(1)
       executeFuture andThen { case result =>
         outputStream.flush()
         result
@@ -103,6 +105,7 @@ class ExecuteRequestHandler(
               .withHeader(MessageType.Outgoing.ExecuteReply)
               .withMetadata(Metadata("status" -> executeReply.status))
               .withContentString(executeReply).build
+
             relayMsg(executeReplyMsg, relayActor)
 
             if (executeResult.hasContent) {
@@ -110,6 +113,11 @@ class ExecuteRequestHandler(
                 .withIds(Seq(MessageType.Outgoing.ExecuteResult.toString.getBytes))
                 .withHeader(MessageType.Outgoing.ExecuteResult)
                 .withContentString(executeResult).build
+              if (kernel.pluginManager != null){
+                import org.apache.toree.plugins.Implicits._
+                println("ssam: Actually Firing PostRunCell")
+                kernel.pluginManager.fireEvent(PostRunCell, "executeResult" -> executeResult)
+              }
               relayMsg(executeResultMsg, relayActor)
             }
           }

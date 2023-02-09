@@ -113,7 +113,8 @@ class ExecuteRequestHandler(
                 .withIds(Seq(MessageType.Outgoing.ExecuteResult.toString.getBytes))
                 .withHeader(MessageType.Outgoing.ExecuteResult)
                 .withContentString(executeResult).build
-              if (kernel.pluginManager != null){
+
+              if (!executeRequest.silent && kernel.pluginManager != null){
                 import org.apache.toree.plugins.Implicits._
                 println("ssam: Actually Firing PostRunCell")
                 kernel.pluginManager.fireEvent(PostRunCell, "executeResult" -> executeResult)
